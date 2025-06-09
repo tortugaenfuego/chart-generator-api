@@ -51,7 +51,12 @@ def generate_chart():
     
     # Create Flatlib datetime object
     flat_dt = Datetime(date_str, time_str, '+00:00')
-    pos = GeoPos(str(round(lat, 6)), str(round(lon, 6)))
+
+    # Clean lat/lon for Flatlib
+    lat_str = f"{lat:.4f}"
+    lon_str = f"{lon:.4f}"
+    
+    pos = GeoPos(lat_str, lon_str)
     chart = Chart(flat_dt, pos, hsys='W')
 
     # Ascendant
