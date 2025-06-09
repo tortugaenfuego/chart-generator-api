@@ -15,6 +15,17 @@ geolocator = Nominatim(user_agent="chart-generator")
 
 TRADITIONAL_PLANETS = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN]
 
+ZODIAC_SIGNS = [
+    'ARIES', 'TAURUS', 'GEMINI', 'CANCER', 'LEO', 'VIRGO',
+    'LIBRA', 'SCORPIO', 'SAGITTARIUS', 'CAPRICORN', 'AQUARIUS', 'PISCES'
+]
+
+def get_whole_sign_house(planet_sign, asc_sign):
+    asc_index = ZODIAC_SIGNS.index(asc_sign)
+    planet_index = ZODIAC_SIGNS.index(planet_sign)
+    house = (planet_index - asc_index) % 12 + 1
+    return house
+
 @app.route("/generate_chart", methods=["POST"])
 def generate_chart():
     data = request.json
@@ -41,31 +52,21 @@ def generate_chart():
     local_tz = pytz.timezone(tzname)
     dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
     localized_dt = local_tz.localize(dt)
-
-    # Convert to UTC
     utc_dt = localized_dt.astimezone(pytz.utc)
-    
-    # Flatlib expects 'YYYY/MM/DD'
+
+    # Format for Flatlib
     date_str = utc_dt.strftime('%Y/%m/%d')
     time_str = utc_dt.strftime('%H:%M')
-    
-    # Create Flatlib datetime object
     flat_dt = Datetime(date_str, time_str, '+00:00')
-
-    # Clean lat/lon for Flatlib
-    lat_str = f"{lat:.4f}"
-    lon_str = f"{lon:.4f}"
-    
-    # Use raw float values
     pos = GeoPos(lat, lon)
-    
-    # Generate chart
-    chart = Chart(flat_dt, pos, hsys='WHOLE')
+
+    # Use Placidus for planetary positions (house system won't matter)
+    chart = Chart(flat_dt, pos, hsys='PLAC')
 
     # Ascendant
     asc = chart.get(ASC)
-    asc_deg = round(asc.lon % 30, 2)
     asc_sign = asc.sign
+    asc_deg = round(asc.lon % 30, 2)
 
     results = {
         "ascendant": {
@@ -76,12 +77,12 @@ def generate_chart():
         "planets": {}
     }
 
-    # Traditional planets
+    # Traditional planets and calculated whole sign houses
     for planet in TRADITIONAL_PLANETS:
         obj = chart.get(planet)
         degree = round(obj.lon % 30, 2)
         sign = obj.sign
-        house = int(obj.house)
+        house = get_whole_sign_house(sign, asc_sign)
 
         results["planets"][planet] = {
             "degree": degree,
