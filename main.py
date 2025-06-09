@@ -29,7 +29,7 @@ def generate_chart():
     }
 
     headers = {
-        "Authorization": f"Bearer {API_KEY}",
+        "Authorization": f"Token {API_KEY}",
         "Content-Type": "application/json"
     }
 
