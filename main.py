@@ -46,11 +46,7 @@ def generate_chart():
     utc_dt = localized_dt.astimezone(pytz.utc)
 
     # Create Flatlib datetime and chart (tropical, whole sign houses)
-    flat_dt = Datetime(
-        utc_dt.strftime('%Y-%m-%d'),
-        utc_dt.strftime('%H:%M'),
-        '+00:00'
-    )
+    flat_dt = Datetime.fromISO(f"{utc_dt.strftime('%Y-%m-%d')} {utc_dt.strftime('%H:%M')}", '+00:00')
     pos = GeoPos(str(lat), str(lon))
     chart = Chart(flat_dt, pos, hsys='W')  # 'W' = Whole Sign Houses
 
