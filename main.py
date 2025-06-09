@@ -47,13 +47,9 @@ def generate_chart():
 
     # Create Flatlib datetime and chart (tropical, whole sign houses)
     flat_dt = Datetime(
-        year=utc_dt.year,
-        month=utc_dt.month,
-        day=utc_dt.day,
-        hour=utc_dt.hour,
-        minute=utc_dt.minute,
-        sec=0,
-        offset='+00:00'
+        f"{utc_dt.year}-{utc_dt.month:02d}-{utc_dt.day:02d}",
+        f"{utc_dt.hour:02d}:{utc_dt.minute:02d}",
+        '+00:00'
     )
     pos = GeoPos(str(lat), str(lon))
     chart = Chart(flat_dt, pos, hsys='W')  # 'W' = Whole Sign Houses
