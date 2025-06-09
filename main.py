@@ -56,8 +56,11 @@ def generate_chart():
     lat_str = f"{lat:.4f}"
     lon_str = f"{lon:.4f}"
     
-    pos = GeoPos(lat_str, lon_str)
-    chart = Chart(flat_dt, pos, hsys='W')
+    # Use raw float values
+    pos = GeoPos(lat, lon)
+    
+    # Generate chart
+    chart = Chart(flat_dt, pos, hsys='W')  # Whole sign
 
     # Ascendant
     asc = chart.get(ASC)
