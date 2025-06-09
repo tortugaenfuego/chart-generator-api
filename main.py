@@ -45,12 +45,12 @@ def generate_chart():
     # Convert to UTC
     utc_dt = localized_dt.astimezone(pytz.utc)
     
-    # Create Flatlib datetime and chart
-    flat_dt = Datetime(
-        f"{utc_dt.year}-{utc_dt.month:02d}-{utc_dt.day:02d}",
-        f"{utc_dt.hour:02d}:{utc_dt.minute:02d}",
-        '+00:00'
-    )
+    # Format date and time
+    date_str = utc_dt.strftime('%Y-%m-%d')  # '1993-01-19'
+    time_str = utc_dt.strftime('%H:%M')     # '03:25'
+    
+    # Create Flatlib datetime using 3 separate arguments
+    flat_dt = Datetime(date_str, time_str, '+00:00')
     pos = GeoPos(str(lat), str(lon))
     chart = Chart(flat_dt, pos, hsys='W')  # 'W' = Whole Sign Houses
 
