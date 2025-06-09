@@ -1,2 +1,5 @@
 flask
-requests
+swisseph
+geopy
+pytz
+timezonefinder
