@@ -60,7 +60,7 @@ def generate_chart():
     pos = GeoPos(lat, lon)
     
     # Generate chart
-    chart = Chart(flat_dt, pos, hsys='W')  # Whole sign
+    chart = Chart(flat_dt, pos, hsys='WHOLE')
 
     # Ascendant
     asc = chart.get(ASC)
