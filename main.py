@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import swisseph as swe
+import pyswisseph as swe
 from datetime import datetime
 from timezonefinder import TimezoneFinder
 import pytz
