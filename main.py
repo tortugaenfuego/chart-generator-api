@@ -29,7 +29,7 @@ def generate_chart():
     }
 
     headers = {
-        "X-API-KEY": API_KEY,
+        "Authorization": API_KEY,
         "Content-Type": "application/json"
     }
 
