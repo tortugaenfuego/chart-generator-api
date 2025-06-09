@@ -1,40 +1,26 @@
 from flask import Flask, request, jsonify
-import pyswisseph as swe
-from datetime import datetime
+from flatlib.chart import Chart
+from flatlib.datetime import Datetime
+from flatlib.geopos import GeoPos
+from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, ASC
+from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
-import requests
-from geopy.geocoders import Nominatim
+from datetime import datetime
 
 app = Flask(__name__)
-
-# Initialize Swiss Ephemeris path
-swe.set_ephe_path(".")  # use current dir for ephemeris files
 
 tf = TimezoneFinder()
 geolocator = Nominatim(user_agent="chart-generator")
 
-TRADITIONAL_PLANETS = {
-    'Sun': swe.SUN,
-    'Moon': swe.MOON,
-    'Mercury': swe.MERCURY,
-    'Venus': swe.VENUS,
-    'Mars': swe.MARS,
-    'Jupiter': swe.JUPITER,
-    'Saturn': swe.SATURN
-}
-
-def get_sign_name(index):
-    signs = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-             "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
-    return signs[index % 12]
+TRADITIONAL_PLANETS = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN]
 
 @app.route("/generate_chart", methods=["POST"])
 def generate_chart():
     data = request.json
     birth_date = data.get("date")       # format: YYYY-MM-DD
-    birth_time = data.get("time")       # format: HH:MM
-    location = data.get("location")     # City name
+    birth_time = data.get("time")       # format: HH:MM (24h)
+    location = data.get("location")     # e.g., "Philadelphia, PA"
 
     if not (birth_date and birth_time and location):
         return jsonify({"error": "Missing required fields"}), 400
@@ -47,46 +33,51 @@ def generate_chart():
     lat = geo.latitude
     lon = geo.longitude
 
-    # Find timezone
+    # Determine timezone
     tzname = tf.timezone_at(lat=lat, lng=lon)
     if not tzname:
         return jsonify({"error": "Could not determine timezone"}), 400
 
-    dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
     local_tz = pytz.timezone(tzname)
+    dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
     localized_dt = local_tz.localize(dt)
+
+    # Convert to UTC
     utc_dt = localized_dt.astimezone(pytz.utc)
 
-    jd = swe.julday(utc_dt.year, utc_dt.month, utc_dt.day,
-                    utc_dt.hour + utc_dt.minute / 60.0)
+    # Create Flatlib datetime and chart (tropical, whole sign houses)
+    flat_dt = Datetime(utc_dt.strftime('%Y-%m-%d'), utc_dt.strftime('%H:%M'), '+00:00')
+    pos = GeoPos(str(lat), str(lon))
+    chart = Chart(flat_dt, pos, hsys='W')  # 'W' = Whole Sign Houses
 
-    # Ascendant and houses
-    _, ascmc, _ = swe.houses(jd, lat, lon, b'A')
-    asc_deg = ascmc[0]
-    asc_sign = int(asc_deg // 30)
+    # Ascendant
+    asc = chart.get(ASC)
+    asc_deg = round(asc.lon % 30, 2)
+    asc_sign = asc.sign
 
-    result = {
+    results = {
         "ascendant": {
-            "degree": round(asc_deg % 30, 2),
-            "sign": get_sign_name(asc_sign),
+            "degree": asc_deg,
+            "sign": asc_sign,
             "house": 1
         },
         "planets": {}
     }
 
-    for name, pid in TRADITIONAL_PLANETS.items():
-        lon_deg, _ = swe.calc_ut(jd, pid)[0:2]
-        sign = int(lon_deg // 30)
-        deg = round(lon_deg % 30, 2)
-        house = ((sign - asc_sign + 12) % 12) + 1
+    # Traditional planets
+    for planet in TRADITIONAL_PLANETS:
+        obj = chart.get(planet)
+        degree = round(obj.lon % 30, 2)
+        sign = obj.sign
+        house = int(obj.house)
 
-        result["planets"][name] = {
-            "degree": deg,
-            "sign": get_sign_name(sign),
+        results["planets"][planet] = {
+            "degree": degree,
+            "sign": sign,
             "house": house
         }
 
-    return jsonify(result)
+    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
