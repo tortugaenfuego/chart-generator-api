@@ -1,7 +1,1 @@
-services:
-  - type: web
-    name: chart-generator-api
-    env: python
-    buildCommand: ""
-    startCommand: "python main.py"
-    plan: free
+
