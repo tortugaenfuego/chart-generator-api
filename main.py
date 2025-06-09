@@ -44,8 +44,8 @@ def generate_chart():
 
     # Convert to UTC
     utc_dt = localized_dt.astimezone(pytz.utc)
-
-    # Create Flatlib datetime and chart (tropical, whole sign houses)
+    
+    # Create Flatlib datetime and chart
     flat_dt = Datetime(
         f"{utc_dt.year}-{utc_dt.month:02d}-{utc_dt.day:02d}",
         f"{utc_dt.hour:02d}:{utc_dt.minute:02d}",
