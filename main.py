@@ -1,7 +1,5 @@
-import flatlib
-print("Flatlib version:", flatlib.__version__)
-
 from flask import Flask, request, jsonify
+from flatlib import const
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
@@ -64,7 +62,7 @@ def generate_chart():
     pos = GeoPos(lat, lon)
 
     # Use Placidus for planetary positions (house system won't matter)
-    chart = Chart(flat_dt, pos, hsys='equal')
+    chart = Chart(flat_dt, pos, hsys=const.HOUSES_PLACIDUS)
 
     # Ascendant
     asc = chart.get(ASC)
