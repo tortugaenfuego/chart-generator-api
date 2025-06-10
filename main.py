@@ -1,3 +1,6 @@
+import flatlib
+print("Flatlib version:", flatlib.__version__)
+
 from flask import Flask, request, jsonify
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
