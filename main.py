@@ -22,8 +22,8 @@ ZODIAC_SIGNS = [
 ]
 
 def get_whole_sign_house(planet_sign, asc_sign):
-    asc_index = ZODIAC_SIGNS.index(asc_sign)
-    planet_index = ZODIAC_SIGNS.index(planet_sign)
+    asc_index = ZODIAC_SIGNS.index(asc_sign.upper())
+    planet_index = ZODIAC_SIGNS.index(planet_sign.upper())
     house = (planet_index - asc_index) % 12 + 1
     return house
 
