@@ -61,7 +61,7 @@ def generate_chart():
     pos = GeoPos(lat, lon)
 
     # Use Placidus for planetary positions (house system won't matter)
-    chart = Chart(flat_dt, pos, hsys='PLAC')
+    chart = Chart(flat_dt, pos, hsys='placidus')
 
     # Ascendant
     asc = chart.get(ASC)
