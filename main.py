@@ -4,8 +4,6 @@ from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, ASC
-from flatlib.lots import Lot
-from flatlib.lots import Parts
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
@@ -93,14 +91,24 @@ def generate_chart():
             "house": house
         }
 
-    # Add Lot of Spirit to chart
-    lot_of_spirit = Lot(Parts.SPIRIT, chart)
-    spirit_obj = lot_of_spirit
+    # Manual Lot of Spirit calculation (diurnal)
+    sun = chart.get(SUN)
+    moon = chart.get(MOON)
+    asc = chart.get(ASC)
     
-    # Add to results
-    spirit_deg = round(spirit_obj.lon % 30, 2)
-    spirit_sign = spirit_obj.sign
-    spirit_house = get_whole_sign_house(spirit_sign, asc_sign)
+    # Convert longitudes to numeric values (0–360°)
+    def to360(obj): return obj.lon if obj.lon >= 0 else obj.lon + 360
+    
+    asc_lon = to360(asc)
+    sun_lon = to360(sun)
+    moon_lon = to360(moon)
+    
+    # Lot of Spirit formula for day chart: Asc + Sun - Moon
+    spirit_lon = (asc_lon + sun_lon - moon_lon) % 360
+    spirit_sign_index = int(spirit_lon // 30)
+    spirit_deg = round(spirit_lon % 30, 2)
+    spirit_sign = ZODIAC_SIGNS[spirit_sign_index]
+    spirit_house = get_whole_sign_house(spirit_sign, asc.sign)
     
     results["lot_of_spirit"] = {
         "degree": spirit_deg,
