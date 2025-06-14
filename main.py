@@ -142,12 +142,12 @@ def generate_chart():
 
     # Chart Ruler
     ruler_name = SIGN_RULERS.get(asc_sign.upper())
-    ruler = chart.get(ruler_name)
+    ruler = chart.get(ruler_name.title())  # Flatlib expects "Mars", not "MARS"
     if ruler:
         ruler_deg = round(ruler.lon % 30, 2)
         ruler_sign = ruler.sign
         ruler_house = get_whole_sign_house(ruler_sign, asc_sign)
-
+    
         results["chart_ruler"] = {
             "planet": ruler_name,
             "degree": ruler_deg,
@@ -156,6 +156,7 @@ def generate_chart():
         }
     else:
         results["chart_ruler"] = {"error": f"{ruler_name} not found in chart"}
+
 
     return jsonify(results)
 
