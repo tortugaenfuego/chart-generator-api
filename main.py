@@ -36,14 +36,13 @@ def get_whole_sign_house(planet_sign, asc_sign):
 @app.route("/generate_chart", methods=["POST"])
 def generate_chart():
     data = request.json
-    birth_date = data.get("date")       # format: YYYY-MM-DD
-    birth_time = data.get("time")       # format: HH:MM (24h)
-    location = data.get("location")     # e.g., "Philadelphia, PA"
+    birth_date = data.get("date")
+    birth_time = data.get("time")
+    location = data.get("location")
 
     if not (birth_date and birth_time and location):
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Geocode location
     geo = geolocator.geocode(location)
     if not geo:
         return jsonify({"error": "Location not found"}), 400
@@ -51,7 +50,6 @@ def generate_chart():
     lat = geo.latitude
     lon = geo.longitude
 
-    # Determine timezone
     tzname = tf.timezone_at(lat=lat, lng=lon)
     if not tzname:
         return jsonify({"error": "Could not determine timezone"}), 400
@@ -61,16 +59,13 @@ def generate_chart():
     localized_dt = local_tz.localize(dt)
     utc_dt = localized_dt.astimezone(pytz.utc)
 
-    # Format for Flatlib
     date_str = utc_dt.strftime('%Y/%m/%d')
     time_str = utc_dt.strftime('%H:%M')
     flat_dt = Datetime(date_str, time_str, '+00:00')
     pos = GeoPos(lat, lon)
 
-    # Create chart (use Placidus system)
     chart = Chart(flat_dt, pos, hsys=const.HOUSES_PLACIDUS)
 
-    # Ascendant
     asc = chart.get(ASC)
     asc_sign = asc.sign
     asc_deg = round(asc.lon % 30, 2)
@@ -84,62 +79,71 @@ def generate_chart():
         "planets": {}
     }
 
-    # Traditional planets and calculated whole sign houses
+    # Traditional planets with safety checks
     for planet in TRADITIONAL_PLANETS:
         obj = chart.get(planet)
-        degree = round(obj.lon % 30, 2)
-        sign = obj.sign
-        house = get_whole_sign_house(sign, asc_sign)
-
-        results["planets"][planet] = {
-            "degree": degree,
-            "sign": sign,
-            "house": house
-        }
+        if obj:
+            degree = round(obj.lon % 30, 2)
+            sign = obj.sign
+            house = get_whole_sign_house(sign, asc_sign)
+            results["planets"][planet] = {
+                "degree": degree,
+                "sign": sign,
+                "house": house
+            }
+        else:
+            results["planets"][planet] = {"error": f"{planet} not found"}
 
     # Helper to normalize longitudes
     def to360(obj): return obj.lon if obj.lon >= 0 else obj.lon + 360
 
     sun = chart.get(SUN)
     moon = chart.get(MOON)
-    asc_lon = to360(asc)
-    sun_lon = to360(sun)
-    moon_lon = to360(moon)
 
-    # Sect determination
-    is_day = sun_lon > asc_lon and sun_lon < (asc_lon + 180) % 360
-    results["sect"] = "day" if is_day else "night"
+    if sun and moon:
+        asc_lon = to360(asc)
+        sun_lon = to360(sun)
+        moon_lon = to360(moon)
 
-    # Lot of Spirit
-    spirit_lon = (asc_lon + sun_lon - moon_lon) % 360
-    spirit_sign_index = int(spirit_lon // 30)
-    spirit_deg = round(spirit_lon % 30, 2)
-    spirit_sign = ZODIAC_SIGNS[spirit_sign_index]
-    spirit_house = get_whole_sign_house(spirit_sign, asc.sign)
+        # Sect
+        is_day = sun_lon > asc_lon and sun_lon < (asc_lon + 180) % 360
+        results["sect"] = "day" if is_day else "night"
 
-    results["lot_of_spirit"] = {
-        "degree": spirit_deg,
-        "sign": spirit_sign,
-        "house": spirit_house
-    }
+        # Lot of Spirit
+        spirit_lon = (asc_lon + sun_lon - moon_lon) % 360
+        spirit_sign_index = int(spirit_lon // 30)
+        spirit_deg = round(spirit_lon % 30, 2)
+        spirit_sign = ZODIAC_SIGNS[spirit_sign_index]
+        spirit_house = get_whole_sign_house(spirit_sign, asc.sign)
 
-    # Lot of Fortune
-    fortune_lon = (asc_lon + moon_lon - sun_lon) % 360
-    fortune_sign_index = int(fortune_lon // 30)
-    fortune_deg = round(fortune_lon % 30, 2)
-    fortune_sign = ZODIAC_SIGNS[fortune_sign_index]
-    fortune_house = get_whole_sign_house(fortune_sign, asc.sign)
+        results["lot_of_spirit"] = {
+            "degree": spirit_deg,
+            "sign": spirit_sign,
+            "house": spirit_house
+        }
 
-    results["lot_of_fortune"] = {
-        "degree": fortune_deg,
-        "sign": fortune_sign,
-        "house": fortune_house
-    }
+        # Lot of Fortune
+        fortune_lon = (asc_lon + moon_lon - sun_lon) % 360
+        fortune_sign_index = int(fortune_lon // 30)
+        fortune_deg = round(fortune_lon % 30, 2)
+        fortune_sign = ZODIAC_SIGNS[fortune_sign_index]
+        fortune_house = get_whole_sign_house(fortune_sign, asc.sign)
 
-    # Chart ruler
+        results["lot_of_fortune"] = {
+            "degree": fortune_deg,
+            "sign": fortune_sign,
+            "house": fortune_house
+        }
+
+    else:
+        results["sect"] = "error"
+        results["lot_of_spirit"] = {"error": "Missing Sun or Moon"}
+        results["lot_of_fortune"] = {"error": "Missing Sun or Moon"}
+
+    # Chart Ruler
     ruler_name = SIGN_RULERS.get(asc_sign.upper())
-    if ruler_name:
-        ruler = chart.get(ruler_name)
+    ruler = chart.get(ruler_name)
+    if ruler:
         ruler_deg = round(ruler.lon % 30, 2)
         ruler_sign = ruler.sign
         ruler_house = get_whole_sign_house(ruler_sign, asc_sign)
@@ -150,6 +154,8 @@ def generate_chart():
             "sign": ruler_sign,
             "house": ruler_house
         }
+    else:
+        results["chart_ruler"] = {"error": f"{ruler_name} not found in chart"}
 
     return jsonify(results)
 
