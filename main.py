@@ -4,6 +4,8 @@ from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, ASC
+from flatlib.lots import Lot
+from flatlib.lots import Parts
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
@@ -90,6 +92,21 @@ def generate_chart():
             "sign": sign,
             "house": house
         }
+
+    # Add Lot of Spirit to chart
+    lot_of_spirit = Lot(Parts.SPIRIT, chart)
+    spirit_obj = lot_of_spirit
+    
+    # Add to results
+    spirit_deg = round(spirit_obj.lon % 30, 2)
+    spirit_sign = spirit_obj.sign
+    spirit_house = get_whole_sign_house(spirit_sign, asc_sign)
+    
+    results["lot_of_spirit"] = {
+        "degree": spirit_deg,
+        "sign": spirit_sign,
+        "house": spirit_house
+    }
 
     return jsonify(results)
 
