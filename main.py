@@ -21,6 +21,12 @@ ZODIAC_SIGNS = [
     'LIBRA', 'SCORPIO', 'SAGITTARIUS', 'CAPRICORN', 'AQUARIUS', 'PISCES'
 ]
 
+SIGN_RULERS = {
+    'ARIES': 'MARS', 'TAURUS': 'VENUS', 'GEMINI': 'MERCURY', 'CANCER': 'MOON',
+    'LEO': 'SUN', 'VIRGO': 'MERCURY', 'LIBRA': 'VENUS', 'SCORPIO': 'MARS',
+    'SAGITTARIUS': 'JUPITER', 'CAPRICORN': 'SATURN', 'AQUARIUS': 'SATURN', 'PISCES': 'JUPITER'
+}
+
 def get_whole_sign_house(planet_sign, asc_sign):
     asc_index = ZODIAC_SIGNS.index(asc_sign.upper())
     planet_index = ZODIAC_SIGNS.index(planet_sign.upper())
@@ -61,7 +67,7 @@ def generate_chart():
     flat_dt = Datetime(date_str, time_str, '+00:00')
     pos = GeoPos(lat, lon)
 
-    # Use Placidus for planetary positions (house system won't matter)
+    # Create chart (use Placidus system)
     chart = Chart(flat_dt, pos, hsys=const.HOUSES_PLACIDUS)
 
     # Ascendant
@@ -91,30 +97,59 @@ def generate_chart():
             "house": house
         }
 
-    # Manual Lot of Spirit calculation (diurnal)
+    # Helper to normalize longitudes
+    def to360(obj): return obj.lon if obj.lon >= 0 else obj.lon + 360
+
     sun = chart.get(SUN)
     moon = chart.get(MOON)
-    asc = chart.get(ASC)
-    
-    # Convert longitudes to numeric values (0–360°)
-    def to360(obj): return obj.lon if obj.lon >= 0 else obj.lon + 360
-    
     asc_lon = to360(asc)
     sun_lon = to360(sun)
     moon_lon = to360(moon)
-    
-    # Lot of Spirit formula for day chart: Asc + Sun - Moon
+
+    # Sect determination
+    is_day = sun_lon > asc_lon and sun_lon < (asc_lon + 180) % 360
+    results["sect"] = "day" if is_day else "night"
+
+    # Lot of Spirit
     spirit_lon = (asc_lon + sun_lon - moon_lon) % 360
     spirit_sign_index = int(spirit_lon // 30)
     spirit_deg = round(spirit_lon % 30, 2)
     spirit_sign = ZODIAC_SIGNS[spirit_sign_index]
     spirit_house = get_whole_sign_house(spirit_sign, asc.sign)
-    
+
     results["lot_of_spirit"] = {
         "degree": spirit_deg,
         "sign": spirit_sign,
         "house": spirit_house
     }
+
+    # Lot of Fortune
+    fortune_lon = (asc_lon + moon_lon - sun_lon) % 360
+    fortune_sign_index = int(fortune_lon // 30)
+    fortune_deg = round(fortune_lon % 30, 2)
+    fortune_sign = ZODIAC_SIGNS[fortune_sign_index]
+    fortune_house = get_whole_sign_house(fortune_sign, asc.sign)
+
+    results["lot_of_fortune"] = {
+        "degree": fortune_deg,
+        "sign": fortune_sign,
+        "house": fortune_house
+    }
+
+    # Chart ruler
+    ruler_name = SIGN_RULERS.get(asc_sign.upper())
+    if ruler_name:
+        ruler = chart.get(ruler_name)
+        ruler_deg = round(ruler.lon % 30, 2)
+        ruler_sign = ruler.sign
+        ruler_house = get_whole_sign_house(ruler_sign, asc_sign)
+
+        results["chart_ruler"] = {
+            "planet": ruler_name,
+            "degree": ruler_deg,
+            "sign": ruler_sign,
+            "house": ruler_house
+        }
 
     return jsonify(results)
 
